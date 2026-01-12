@@ -1,11 +1,11 @@
-from bson import ObjectId
+from fastapi import FastAPI, HTTPException, Depends, Request, status
 from motor.motor_asyncio import AsyncIOMotorClient
 from login.jwttoken import create_access_token, ALGORITHM, SECRET_KEY
+from bson import ObjectId
 from login.oauth import oauth2_scheme
 from models import User, Login, Token, TokenData
 from decouple import config
 from login.hashing import Hash
-from fastapi import FastAPI, HTTPException, Depends, Request, status
 
 client = AsyncIOMotorClient(config('DB_URL'))
 database = client.usersdatabase
@@ -43,5 +43,6 @@ def get_user_by_id(user_id: str) -> User:
         user = User(**user_data)
         return user
     return None
+
 
 
