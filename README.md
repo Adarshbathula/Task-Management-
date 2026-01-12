@@ -211,9 +211,9 @@ React Components
 
 ## 👨💻 Author
 
-**MonforteGG** – Full Stack Developer  
+**AdarshBathula** – Full Stack Developer  
 
-GitHub: [@MonforteGG](https://github.com/MonforteGG)
+GitHub:https://github.com/Adarshbathula/Task-Management
 
 ---
 
