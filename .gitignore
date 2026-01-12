@@ -8,12 +8,13 @@ backend/__pycache__/
 backend/**/__pycache__/
 
 # Frontend
+frontend/*.cache
 frontend/node_modules/
 frontend/build/
 frontend/.env
 frontend/**/*.xml
 frontend/.cache/
-frontend/*.cache
+
 
 # Backend
 backend/node_modules/
