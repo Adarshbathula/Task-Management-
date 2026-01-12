@@ -215,7 +215,7 @@ React Components
 
 **AdarshBathula** – Full Stack Developer  
 
-GitHub:https://github.com/Adarshbathula/Task-Management
+GitHub:[Adarshbathula/Task-Management](https://github.com/Adarshbathula/Task-Management-/tree/main)
 
 ---
 
