@@ -61,7 +61,9 @@ frontend/
 │   └── pages/                   # Application pages
 │       ├── Login.jsx            # Authentication page
 │       ├── HomePage.jsx         # Main page with task list
-│       └── TaskForm.jsx         # Form for creating/editing tasks
+│       └── TaskForm.jsx
+|       |__Register.jsx
+       # Form for creating/editing tasks
 │
 ├── index.html                   # Main HTML file
 ├── package.json                 # Node.js dependencies and scripts
