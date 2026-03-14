@@ -4,8 +4,12 @@ from bson import ObjectId
 from decouple import config
 
 
-client = AsyncIOMotorClient(config('DB_URL'))
-database = client.taskdatabase
+mongo_url = config("DB_URL", default=None) or config("MONGODB_URL")
+client = AsyncIOMotorClient(mongo_url)
+
+raw_db_name = config("TASKS_DB_NAME", default="taskdatabase")
+database_name = raw_db_name.split()[0] if raw_db_name else "taskdatabase"
+database = client[database_name]
 collection = database.tasks
 
 async def get_one_task_id(id):
@@ -28,7 +32,6 @@ async def get_tasks_by_user(user_id: str):
     async for document in collection.find({"user_id": user_id}):
         tasks.append(Task(**document))
     return tasks
-
 
 async def create_task(task_data: dict):
 

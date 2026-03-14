@@ -103,7 +103,7 @@ frontend/
 - Python 3.8+
 - Node.js 16+
 - npm or yarn
-- MongoDB running locally or in the cloud
+- MongoDB running locally or a MongoDB Atlas cluster
 
 ### Backend Setup
 
@@ -123,9 +123,18 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Set up environment variables (create a `.env` file):
+4. Set up environment variables (create a `.env` file in the `backend/` folder):
 ```env
+# Primary MongoDB connection string (Atlas or local)
+DB_URL=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+
+# Optional: alternative env name (used as fallback if DB_URL is not set)
 MONGODB_URL=mongodb://localhost:27017
+
+# Optional: override database names (defaults shown)
+TASKS_DB_NAME=taskdatabase
+USERS_DB_NAME=usersdatabase
+
 SECRET_KEY=your_secret_key_here
 ```
 

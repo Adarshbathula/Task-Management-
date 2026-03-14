@@ -3,6 +3,8 @@ backend/.idea/
 backend/*.iml
 backend/*.pyc
 backend/__pycache__/
+backend/venv/
+venv/
 
 # Ignorar todos los __pycache__ en backend
 backend/**/__pycache__/

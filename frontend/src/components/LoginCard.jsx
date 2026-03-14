@@ -13,6 +13,7 @@ function LoginCard() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setMessage('');
         try {
             const response = await axios.post('http://localhost:8000/login', {
                 username: username,
@@ -21,37 +22,65 @@ function LoginCard() {
             login(response.data.token.access_token);  
             navigate('/');
         } catch (error) {
-            setMessage('Login failed');
+            setMessage('Invalid username or password');
             console.error(error);  
         }
     };
+
     return ( 
-        <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
-            <form  onSubmit={handleLogin}>
-                <h2>Login</h2>
-                <input
-                    type="text"
-                    placeholder="Username"
-                    className="block py-2 px-3 mb-4 w-full text-black"
-                    onChange={(e) => setUsername(e.target.value)}
-                    value={username}
-                    autoFocus
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    className="block py-2 px-3 mb-4 w-full text-black"
-                    onChange={(e) => setPassword(e.target.value)}
-                    value={password}
-                />
-                <button className="
-                bg-green-500 
-                hover:bg-green-700 
-                text-white font-bold py-1 px-2 rounded"
-                >
-                    LOGIN
-                </button>
-            </form>
+        <div className="min-h-screen flex items-center justify-center bg-slate-900">
+            <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl p-8">
+                <h1 className="text-3xl font-bold text-white text-center mb-2">
+                    Tasks App
+                </h1>
+                <p className="text-slate-300 text-center mb-6">
+                    Sign in to manage your tasks
+                </p>
+
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                        <label htmlFor="username" className="block text-sm font-medium text-slate-200 mb-1">
+                            Username
+                        </label>
+                        <input
+                            id="username"
+                            type="text"
+                            placeholder="Enter your username"
+                            className="block w-full py-2 px-3 rounded-md bg-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            onChange={(e) => setUsername(e.target.value)}
+                            value={username}
+                            autoFocus
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="password" className="block text-sm font-medium text-slate-200 mb-1">
+                            Password
+                        </label>
+                        <input
+                            id="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            className="block w-full py-2 px-3 rounded-md bg-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            onChange={(e) => setPassword(e.target.value)}
+                            value={password}
+                        />
+                    </div>
+
+                    {message && (
+                        <p className="text-red-400 text-sm text-center">
+                            {message}
+                        </p>
+                    )}
+
+                    <button
+                        type="submit"
+                        className="w-full bg-green-500 hover:bg-green-600 transition-colors text-white font-semibold py-2 rounded-md mt-2"
+                    >
+                        Login
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }

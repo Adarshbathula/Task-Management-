@@ -7,8 +7,12 @@ from models import User, Login, Token, TokenData
 from decouple import config
 from login.hashing import Hash
 
-client = AsyncIOMotorClient(config('DB_URL'))
-database = client.usersdatabase
+mongo_url = config("DB_URL", default=None) or config("MONGODB_URL")
+client = AsyncIOMotorClient(mongo_url)
+
+raw_db_name = config("USERS_DB_NAME", default="usersdatabase")
+database_name = raw_db_name.split()[0] if raw_db_name else "usersdatabase"
+database = client[database_name]
 collection = database.users
 
 

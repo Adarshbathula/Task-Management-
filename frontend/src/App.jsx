@@ -11,21 +11,23 @@ import TaskForm from "./pages/TaskForm"
 function App() {
   return (
     <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/tasks/:id" element={<ProtectedRoute><TaskForm /></ProtectedRoute>} />
-        <Route path="/tasks/new" element={<ProtectedRoute><TaskForm /></ProtectedRoute>} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+      <AuthProvider>
+        <Navbar />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/tasks/:id" element={<ProtectedRoute><TaskForm /></ProtectedRoute>} />
+          <Route path="/tasks/new" element={<ProtectedRoute><TaskForm /></ProtectedRoute>} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
