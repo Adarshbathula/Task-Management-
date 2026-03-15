@@ -1,8 +1,8 @@
 // src/api/tasks.js
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
-const URL = 'https://task-management-ml9m.onrender.com';
+const URL = import.meta.env.VITE_API_URL || 'https://task-management-ml9m.onrender.com';
+export const API_URL = URL;
 const endpoint = `${URL}/api/tasks`;
 
 // Configuración de Axios

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { API_URL } from "../api/tasks";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const Register = () => {
     e.preventDefault();
     setMessage("");
     try {
-      await axios.post("https://task-management-ml9m.onrender.com/register", form);
+      await axios.post(`${API_URL}/register`, form);
       setMessage("Account created successfully. Redirecting to login...");
       setTimeout(() => navigate("/login"), 1200);
     } catch (err) {

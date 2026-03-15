@@ -2,7 +2,7 @@ import axios from "axios";
 import { useState, useContext } from "react"
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
-
+import { API_URL } from '../api/tasks';
 
 function LoginCard() {
     const [username, setUsername] = useState('');
@@ -15,15 +15,20 @@ function LoginCard() {
         e.preventDefault();
         setMessage('');
         try {
-            const response = await axios.post('https://task-management-ml9m.onrender.com/login', {
+            const response = await axios.post(`${API_URL}/login`, {
                 username: username,
                 password: password
             });
-            login(response.data.token.access_token);  
-            navigate('/');
+            const token = response.data?.token?.access_token ?? response.data?.access_token;
+            if (token) {
+                login(token);
+                navigate('/');
+            } else {
+                setMessage('Invalid response from server');
+            }
         } catch (error) {
             setMessage('Invalid username or password');
-            console.error(error);  
+            console.error(error);
         }
     };
 
