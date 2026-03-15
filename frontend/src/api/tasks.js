@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const URL = 'http://localhost:8000';
+const URL = 'https://task-management-ml9m.onrender.com';
 const endpoint = `${URL}/api/tasks`;
 
 // Configuración de Axios

@@ -19,7 +19,7 @@ const Register = () => {
     e.preventDefault();
     setMessage("");
     try {
-      await axios.post("http://127.0.0.1:8000/register", form);
+      await axios.post("https://task-management-ml9m.onrender.com/register", form);
       setMessage("Account created successfully. Redirecting to login...");
       setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
