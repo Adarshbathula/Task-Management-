@@ -90,3 +90,49 @@ export const deleteTask = async (id) => {
         throw error;
     }
 };
+
+export const fetchTaskStats = async () => {
+    try {
+        const response = await axiosInstance.get(`${endpoint}/stats`);
+        return response.data;
+    } catch (error) {
+        if (error.response && error.response.status === 401) {
+            window.location.href = '/login';
+        }
+        console.error('Error fetching task stats:', error);
+        throw error;
+    }
+};
+
+export const fetchCompletedPerDay = async () => {
+    try {
+        const response = await axiosInstance.get(`${endpoint}/completed-per-day`);
+        return response.data;
+    } catch (error) {
+        if (error.response && error.response.status === 401) {
+            window.location.href = '/login';
+        }
+        console.error('Error fetching completed per day:', error);
+        throw error;
+    }
+};
+
+export const fetchAdminUsers = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/admin/users`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching admin users:', error);
+        throw error;
+    }
+};
+
+export const fetchAdminTasks = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/admin/tasks`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching admin tasks:', error);
+        throw error;
+    }
+};

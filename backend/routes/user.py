@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from user_db import create_user, login
-from models import User, Login
+from user_db import create_user, login, get_all_users_public
+from models import User, Login, TokenData
+from login.oauth import require_admin
 
 auth = APIRouter()
 
@@ -15,3 +16,8 @@ async def register(request:User):
 async def log(request: Request, login_data: Login):
     token = await login(request, login_data)
     return {"token": token}
+
+
+@auth.get("/admin/users")
+async def admin_users(_admin: TokenData = Depends(require_admin)):
+    return await get_all_users_public()

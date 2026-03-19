@@ -36,7 +36,8 @@ async def login(request: Request, login_data: Login):
 
     access_token = create_access_token(data={
         "sub": user["username"],
-        "user_id": str(user["_id"])
+        "user_id": str(user["_id"]),
+        "role": user.get("role", "user"),
     })
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -47,6 +48,25 @@ def get_user_by_id(user_id: str) -> User:
         user = User(**user_data)
         return user
     return None
+
+
+async def get_all_users_public():
+    """
+    Admin-only endpoint helper.
+    Returns user list without exposing passwords.
+    """
+    cursor = collection.find({}, {"password": 0})
+    users = []
+    async for user in cursor:
+        users.append(
+            {
+                "user_id": str(user["_id"]),
+                "username": user.get("username"),
+                "email": user.get("email"),
+                "role": user.get("role", "user"),
+            }
+        )
+    return users
 
 
 

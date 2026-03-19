@@ -15,6 +15,9 @@ function LoginCard() {
         e.preventDefault();
         setMessage('');
         try {
+            // Useful when debugging production: confirm the request URL being called.
+            // eslint-disable-next-line no-console
+            console.log("Login POST URL:", `${API_URL}/login`);
             const response = await axios.post(`${API_URL}/login`, {
                 username: username,
                 password: password
@@ -27,7 +30,14 @@ function LoginCard() {
                 setMessage('Invalid response from server');
             }
         } catch (error) {
-            setMessage('Invalid username or password');
+            const status = error?.response?.status;
+            const detail =
+                error?.response?.data?.detail ||
+                error?.response?.data?.message ||
+                error?.message ||
+                "Unknown error";
+            const statusPart = status ? ` (${status})` : "";
+            setMessage(`Login failed${statusPart}: ${detail}`);
             console.error(error);
         }
     };

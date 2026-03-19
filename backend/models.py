@@ -2,6 +2,7 @@ import pydantic
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 from bson import ObjectId
+from datetime import date, datetime
 from pydantic_core import core_schema
 
 
@@ -40,7 +41,11 @@ class Task(BaseModel):
     id: Optional[PyObjectId] = Field(default=None, alias='_id')
     title: str
     description: Optional[str] = None
-    completed: bool = False
+    priority: str = "medium"  # high / medium / low
+    due_date: Optional[date] = None
+    status: str = "pending"  # pending / completed / overdue
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
     user_id: Optional[str] = None
 
 
@@ -53,7 +58,11 @@ class Task(BaseModel):
 class UpdateTask(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    completed: Optional[bool] = False
+    priority: Optional[str] = None
+    due_date: Optional[date] = None
+    status: Optional[str] = None
+    # Backwards compatibility for older clients
+    completed: Optional[bool] = None
 
     class Config:
         from_attributes = True
@@ -67,6 +76,7 @@ class User(BaseModel):
     username: str
     email: EmailStr
     password: str
+    role: str = "user"  # admin / user
 
     class Config:
         from_attributes = True
@@ -79,6 +89,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
     user_id: Optional[str] = None
+    role: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -1,10 +1,19 @@
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
-from task_db import get_all_tasks, create_task, get_one_task_title, get_one_task_id, delete_task, update_task, \
-    get_tasks_by_user
+from task_db import (
+    get_all_tasks,
+    create_task,
+    get_one_task_title,
+    get_one_task_id,
+    delete_task,
+    update_task,
+    get_tasks_by_user,
+    get_task_stats_by_user,
+    get_completed_per_day_last_7_days,
+)
 from models import Task, UpdateTask, TokenData
-from login.oauth import get_current_user
+from login.oauth import get_current_user, require_admin
 
 task = APIRouter()
 
@@ -35,7 +44,7 @@ async def save_task(task: Task, current_user: TokenData = Depends(get_current_us
     if task_found:
         raise HTTPException(409, 'Task already exists')
 
-    task_data = task.dict()
+    task_data = task.model_dump(by_alias=True, exclude={"id"})
     task_data['user_id'] = current_user.user_id
 
     response = await create_task(task_data)
@@ -58,3 +67,19 @@ async def remove_task(id: str):
     if response:
         return "Sucessfully deleted task"
     raise HTTPException(404, f'Task with id {id} not found')
+
+
+@task.get("/api/tasks/stats")
+async def task_stats(current_user: TokenData = Depends(get_current_user)):
+    return await get_task_stats_by_user(current_user.user_id)
+
+
+@task.get("/api/tasks/completed-per-day")
+async def completed_per_day(current_user: TokenData = Depends(get_current_user)):
+    return await get_completed_per_day_last_7_days(current_user.user_id)
+
+
+@task.get("/admin/tasks", response_model=List[Task])
+async def admin_all_tasks(_admin: TokenData = Depends(require_admin)):
+    # Returns all tasks for all users (admin only)
+    return await get_all_tasks()

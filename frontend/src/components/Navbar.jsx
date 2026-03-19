@@ -18,7 +18,7 @@ const navigation = [
 ];
 
 export default function Navbar() {
-  const { isAuthenticated, logout } = useContext(AuthContext);
+  const { isAuthenticated, role, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSignOut = () => {
@@ -87,6 +87,14 @@ export default function Navbar() {
                     className="px-4 py-2 rounded-md bg-green-500 text-white font-bold text-sm hover:bg-green-700"
                   >
                     Create Task
+                  </Link>
+                )}
+                {isAuthenticated && role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="px-4 py-2 rounded-md bg-slate-700 text-white font-bold text-sm hover:bg-slate-600"
+                  >
+                    Admin
                   </Link>
                 )}
 

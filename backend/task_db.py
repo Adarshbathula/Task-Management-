@@ -1,7 +1,10 @@
-from motor.motor_asyncio import AsyncIOMotorClient
-from models import Task
+from datetime import date, datetime, timedelta, time
+
 from bson import ObjectId
 from decouple import config
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from models import Task
 
 
 mongo_url = config("DB_URL", default=None) or config("MONGODB_URL")
@@ -12,44 +15,177 @@ database_name = raw_db_name.split()[0] if raw_db_name else "taskdatabase"
 database = client[database_name]
 collection = database.tasks
 
+
+def _coerce_due_date(value):
+    if value is None:
+        return None
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        # Expect formats like "YYYY-MM-DD"
+        return datetime.fromisoformat(value).date()
+    return None
+
+
+def _normalize_task_document(document: dict) -> dict:
+    """
+    Backwards compatibility:
+    - older tasks may have `completed: bool` instead of `status`
+    - older tasks may not have `completed_at`
+    """
+    normalized = dict(document)
+
+    if not normalized.get("status"):
+        completed = normalized.get("completed")
+        normalized["status"] = "completed" if completed else "pending"
+
+    due = _coerce_due_date(normalized.get("due_date"))
+    status = normalized.get("status")
+
+    if status != "completed" and due is not None:
+        normalized["status"] = "overdue" if due < date.today() else "pending"
+
+    if normalized.get("status") == "completed" and not normalized.get("completed_at"):
+        normalized["completed_at"] = normalized.get("created_at") or datetime.utcnow()
+
+    return normalized
+
 async def get_one_task_id(id):
     task = await collection.find_one({'_id': ObjectId(id)})
-    return task
+    if not task:
+        return None
+    return Task(**_normalize_task_document(task))
 
 async def get_one_task_title(user_id: str , title: str):
     task = await collection.find_one({'user_id': user_id , 'title': title})
-    return task
+    if not task:
+        return None
+    return Task(**_normalize_task_document(task))
 
 async def get_all_tasks():
     tasks = []
     cursor = collection.find({})
     async for document in cursor:
-        tasks.append(Task(**document))
+        tasks.append(Task(**_normalize_task_document(document)))
     return tasks
 
 async def get_tasks_by_user(user_id: str):
     tasks = []
     async for document in collection.find({"user_id": user_id}):
-        tasks.append(Task(**document))
+        tasks.append(Task(**_normalize_task_document(document)))
     return tasks
 
 async def create_task(task_data: dict):
+    task_data = dict(task_data)
 
+    due = _coerce_due_date(task_data.get("due_date"))
+    status = task_data.get("status", "pending")
 
-    # Insertar la tarea en la colección de MongoDB
+    # Derive status from due_date
+    if status != "completed" and due is not None:
+        task_data["status"] = "overdue" if due < date.today() else "pending"
+
+    if task_data.get("status") == "completed" and not task_data.get("completed_at"):
+        task_data["completed_at"] = datetime.utcnow()
+
     new_task = await collection.insert_one(task_data)
-
-    # Recuperar la tarea recién creada para devolverla como respuesta
     created_task = await collection.find_one({'_id': new_task.inserted_id})
-
-    return created_task
+    if not created_task:
+        return None
+    return Task(**_normalize_task_document(created_task))
 
 async def update_task(id: str, data):
-    task = {k:v for k,v in data.dict().items() if v is not None}
-    await collection.update_one({'_id': ObjectId(id)}, {'$set': task})
+    update_fields = data.model_dump(exclude_unset=True)
+    update_fields = dict(update_fields)
+
+    # Backwards compatibility: if older clients send `completed`
+    if "completed" in update_fields:
+        completed = update_fields.pop("completed")
+        if completed is not None and "status" not in update_fields:
+            update_fields["status"] = "completed" if completed else "pending"
+
+    existing = await collection.find_one({"_id": ObjectId(id)})
+    if not existing:
+        return None
+
+    current_status = existing.get("status", "pending")
+    current_due = existing.get("due_date")
+
+    new_status = update_fields.get("status", current_status)
+    new_due = update_fields.get("due_date", current_due)
+    due = _coerce_due_date(new_due)
+
+    # Derive overdue unless explicitly completed
+    if new_status != "completed" and due is not None:
+        new_status = "overdue" if due < date.today() else "pending"
+
+    update_fields["status"] = new_status
+
+    if new_status == "completed":
+        update_fields["completed_at"] = update_fields.get("completed_at") or existing.get("completed_at") or datetime.utcnow()
+    else:
+        # Explicitly clear completed_at when leaving completed state
+        update_fields["completed_at"] = None
+
+    await collection.update_one({"_id": ObjectId(id)}, {"$set": update_fields})
     document = await collection.find_one({'_id': ObjectId(id)})
-    return document
+    if not document:
+        return None
+    return Task(**_normalize_task_document(document))
 
 async def delete_task(id: str):
     await collection.delete_one({'_id':ObjectId(id)})
     return True
+
+
+async def get_task_stats_by_user(user_id: str):
+    completed = 0
+    pending = 0
+    overdue = 0
+    total = 0
+
+    cursor = collection.find({"user_id": user_id})
+    async for doc in cursor:
+        total += 1
+        normalized = _normalize_task_document(doc)
+        status = normalized.get("status", "pending")
+        if status == "completed":
+            completed += 1
+        elif status == "overdue":
+            overdue += 1
+        else:
+            pending += 1
+
+    return {"total": int(total), "completed": completed, "pending": pending, "overdue": overdue}
+
+
+async def get_completed_per_day_last_7_days(user_id: str):
+    start_date = date.today() - timedelta(days=6)
+    end_date = date.today() + timedelta(days=1)
+
+    start_dt = datetime.combine(start_date, time.min)
+    end_dt = datetime.combine(end_date, time.min)
+
+    # Initialize all days so chart always renders 7 bars
+    day_counts = {(start_date + timedelta(days=i)): 0 for i in range(7)}
+
+    cursor = collection.find({"user_id": user_id})
+    async for doc in cursor:
+        normalized = _normalize_task_document(doc)
+        if normalized.get("status") != "completed":
+            continue
+        completed_at = normalized.get("completed_at")
+        if not completed_at or not isinstance(completed_at, datetime):
+            continue
+        if not (start_dt <= completed_at < end_dt):
+            continue
+        d = completed_at.date()
+        if d in day_counts:
+            day_counts[d] += 1
+
+    labels = [(start_date + timedelta(days=i)).strftime("%a") for i in range(7)]
+    counts = [day_counts[start_date + timedelta(days=i)] for i in range(7)]
+
+    return {"labels": labels, "counts": counts}

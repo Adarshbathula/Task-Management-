@@ -20,11 +20,21 @@ const Register = () => {
     e.preventDefault();
     setMessage("");
     try {
+      // Useful when debugging production: confirm the request URL being called.
+      // eslint-disable-next-line no-console
+      console.log("Register POST URL:", `${API_URL}/register`);
       await axios.post(`${API_URL}/register`, form);
       setMessage("Account created successfully. Redirecting to login...");
       setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
-      setMessage("Registration failed. Please check your data.");
+      const status = err?.response?.status;
+      const detail =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unknown error";
+      const statusPart = status ? ` (${status})` : "";
+      setMessage(`Registration failed${statusPart}: ${detail}`);
     }
   };
 
