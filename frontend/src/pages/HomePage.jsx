@@ -103,10 +103,10 @@ function HomePage() {
                 {completedPerDay ? (
                     <ResponsiveContainer width="100%" height={260}>
                         <BarChart
-                            data={completedPerDay.labels.map((label, idx) => ({
-                                label,
-                                count: completedPerDay.counts[idx] ?? 0,
-                            }))}
+                           data={(completedPerDay?.labels || []).map((label, idx) => ({
+    label,
+    count: completedPerDay.counts?.[idx] ?? 0,
+}))}
                             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                         >
                             <XAxis dataKey="label" stroke="#94a3b8" fontSize={12} />

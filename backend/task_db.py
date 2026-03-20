@@ -24,17 +24,18 @@ def _coerce_due_date(value):
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, str):
-        # Expect formats like "YYYY-MM-DD"
         return datetime.fromisoformat(value).date()
     return None
 
 
+def _convert_date_to_datetime(value):
+    """Convert date to datetime for MongoDB storage."""
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return datetime.combine(value, time.min)
+    return value
+
+
 def _normalize_task_document(document: dict) -> dict:
-    """
-    Backwards compatibility:
-    - older tasks may have `completed: bool` instead of `status`
-    - older tasks may not have `completed_at`
-    """
     normalized = dict(document)
 
     if not normalized.get("status"):
@@ -52,17 +53,20 @@ def _normalize_task_document(document: dict) -> dict:
 
     return normalized
 
+
 async def get_one_task_id(id):
     task = await collection.find_one({'_id': ObjectId(id)})
     if not task:
         return None
     return Task(**_normalize_task_document(task))
 
-async def get_one_task_title(user_id: str , title: str):
-    task = await collection.find_one({'user_id': user_id , 'title': title})
+
+async def get_one_task_title(user_id: str, title: str):
+    task = await collection.find_one({'user_id': user_id, 'title': title})
     if not task:
         return None
     return Task(**_normalize_task_document(task))
+
 
 async def get_all_tasks():
     tasks = []
@@ -71,14 +75,20 @@ async def get_all_tasks():
         tasks.append(Task(**_normalize_task_document(document)))
     return tasks
 
+
 async def get_tasks_by_user(user_id: str):
     tasks = []
     async for document in collection.find({"user_id": user_id}):
         tasks.append(Task(**_normalize_task_document(document)))
     return tasks
 
+
 async def create_task(task_data: dict):
     task_data = dict(task_data)
+
+    # ✅ FIX — convert date to datetime before saving to MongoDB
+    if task_data.get("due_date") is not None:
+        task_data["due_date"] = _convert_date_to_datetime(task_data["due_date"])
 
     due = _coerce_due_date(task_data.get("due_date"))
     status = task_data.get("status", "pending")
@@ -96,6 +106,7 @@ async def create_task(task_data: dict):
         return None
     return Task(**_normalize_task_document(created_task))
 
+
 async def update_task(id: str, data):
     update_fields = data.model_dump(exclude_unset=True)
     update_fields = dict(update_fields)
@@ -105,6 +116,10 @@ async def update_task(id: str, data):
         completed = update_fields.pop("completed")
         if completed is not None and "status" not in update_fields:
             update_fields["status"] = "completed" if completed else "pending"
+
+    # ✅ FIX — convert date to datetime before saving to MongoDB
+    if update_fields.get("due_date") is not None:
+        update_fields["due_date"] = _convert_date_to_datetime(update_fields["due_date"])
 
     existing = await collection.find_one({"_id": ObjectId(id)})
     if not existing:
@@ -124,9 +139,13 @@ async def update_task(id: str, data):
     update_fields["status"] = new_status
 
     if new_status == "completed":
-        update_fields["completed_at"] = update_fields.get("completed_at") or existing.get("completed_at") or datetime.utcnow()
+        update_fields["completed_at"] = (
+            update_fields.get("completed_at")
+            or existing.get("completed_at")
+            or datetime.utcnow()
+        )
     else:
-        # Explicitly clear completed_at when leaving completed state
+        # Clear completed_at when leaving completed state
         update_fields["completed_at"] = None
 
     await collection.update_one({"_id": ObjectId(id)}, {"$set": update_fields})
@@ -135,8 +154,9 @@ async def update_task(id: str, data):
         return None
     return Task(**_normalize_task_document(document))
 
+
 async def delete_task(id: str):
-    await collection.delete_one({'_id':ObjectId(id)})
+    await collection.delete_one({'_id': ObjectId(id)})
     return True
 
 
@@ -158,7 +178,12 @@ async def get_task_stats_by_user(user_id: str):
         else:
             pending += 1
 
-    return {"total": int(total), "completed": completed, "pending": pending, "overdue": overdue}
+    return {
+        "total": int(total),
+        "completed": completed,
+        "pending": pending,
+        "overdue": overdue
+    }
 
 
 async def get_completed_per_day_last_7_days(user_id: str):

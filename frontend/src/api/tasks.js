@@ -1,11 +1,12 @@
-// src/api/tasks.js
 import axios from 'axios';
 
-const URL = import.meta.env.VITE_API_URL || 'https://task-management-ml9m.onrender.com';
+const URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 export const API_URL = URL;
-const endpoint = `${URL}/api/tasks`;
 
-// Configuración de Axios
+// ✅ Define endpoint FIRST before using it
+const endpoint = '/api/tasks';
+
+// ✅ Now create axiosInstance AFTER
 const axiosInstance = axios.create({
     baseURL: URL,
     headers: {

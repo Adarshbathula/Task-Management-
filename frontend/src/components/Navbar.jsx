@@ -80,15 +80,8 @@ export default function Navbar() {
               {/* Right side */}
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:ml-6 sm:pr-0 gap-3">
 
-                {/* Show ONLY when authenticated */}
-                {isAuthenticated && (
-                  <Link
-                    to="/tasks/new"
-                    className="px-4 py-2 rounded-md bg-green-500 text-white font-bold text-sm hover:bg-green-700"
-                  >
-                    Create Task
-                  </Link>
-                )}
+                {/* ✅ Create Task button REMOVED from here */}
+
                 {isAuthenticated && role === 'admin' && (
                   <Link
                     to="/admin"
@@ -98,7 +91,6 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                {/* Show Login & Register ONLY when NOT authenticated */}
                 {!isAuthenticated && (
                   <>
                     <Link
@@ -107,7 +99,6 @@ export default function Navbar() {
                     >
                       Login
                     </Link>
-
                     <Link
                       to="/register"
                       className="px-4 py-2 rounded-md bg-purple-500 text-white text-sm hover:bg-purple-700"
@@ -117,7 +108,6 @@ export default function Navbar() {
                   </>
                 )}
 
-                {/* Profile Menu (ONLY if authenticated) */}
                 {isAuthenticated && (
                   <Menu as="div" className="relative">
                     <MenuButton className="flex rounded-full bg-gray-800 text-sm">
