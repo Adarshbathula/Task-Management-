@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta, time
+from typing import List
 
 from bson import ObjectId
 from decouple import config
@@ -14,6 +15,9 @@ raw_db_name = config("TASKS_DB_NAME", default="taskdatabase")
 database_name = raw_db_name.split()[0] if raw_db_name else "taskdatabase"
 database = client[database_name]
 collection = database.tasks
+TASK_EMAIL_REMINDER_MIN_INTERVAL_MINUTES = int(
+    config("TASK_EMAIL_REMINDER_MIN_INTERVAL_MINUTES", default=180)
+)
 
 
 def _coerce_due_date(value):
@@ -52,6 +56,19 @@ def _normalize_task_document(document: dict) -> dict:
         normalized["completed_at"] = normalized.get("created_at") or datetime.utcnow()
 
     return normalized
+
+
+def _coerce_datetime(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
+    return None
 
 
 async def get_one_task_id(id):
@@ -214,3 +231,52 @@ async def get_completed_per_day_last_7_days(user_id: str):
     counts = [day_counts[start_date + timedelta(days=i)] for i in range(7)]
 
     return {"labels": labels, "counts": counts}
+
+
+async def list_task_user_ids() -> List[str]:
+    ids = await collection.distinct("user_id")
+    users = {str(uid) for uid in ids if uid}
+    return sorted(users)
+
+
+async def get_due_task_email_reminders_for_scheduler(
+    user_id: str,
+    reference_dt: datetime | None = None,
+) -> List[dict]:
+    now = reference_dt or datetime.now()
+    today = now.date()
+    min_interval = max(5, TASK_EMAIL_REMINDER_MIN_INTERVAL_MINUTES)
+    cutoff = now - timedelta(minutes=min_interval)
+
+    cursor = collection.find({"user_id": user_id, "status": {"$ne": "completed"}})
+    due: List[dict] = []
+    due_ids = []
+
+    async for doc in cursor:
+        normalized = _normalize_task_document(doc)
+        due_date = _coerce_due_date(normalized.get("due_date"))
+        if due_date is None or due_date > today:
+            continue
+
+        reminded_at = _coerce_datetime(normalized.get("email_reminded_at"))
+        if reminded_at and reminded_at > cutoff:
+            continue
+
+        due_ids.append(doc["_id"])
+        due.append(
+            {
+                "id": str(doc["_id"]),
+                "title": normalized.get("title", "Task"),
+                "priority": normalized.get("priority", "medium"),
+                "status": normalized.get("status", "pending"),
+                "due_date": due_date.isoformat(),
+            }
+        )
+
+    if due_ids:
+        await collection.update_many(
+            {"_id": {"$in": due_ids}},
+            {"$set": {"email_reminded_at": now}},
+        )
+
+    return due

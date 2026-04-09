@@ -69,4 +69,13 @@ async def get_all_users_public():
     return users
 
 
+async def get_user_email_by_id(user_id: str):
+    if not ObjectId.is_valid(user_id):
+        return None
+    user = await collection.find_one({"_id": ObjectId(user_id)}, {"email": 1})
+    if not user:
+        return None
+    return user.get("email")
+
+
 

@@ -1,5 +1,4 @@
 from typing import List
-
 from fastapi import APIRouter, HTTPException, Depends
 from task_db import (
     get_all_tasks,
@@ -38,9 +37,9 @@ async def completed_per_day(current_user: TokenData = Depends(get_current_user))
 
 # ✅ STEP 3 — DYNAMIC routes AFTER specific ones
 @task.get('/api/tasks/{id}', response_model=Task)
-async def get_task(id: str):
+async def get_task(id: str, current_user: TokenData = Depends(get_current_user)):
     task_item = await get_one_task_id(id)
-    if task_item:
+    if task_item and task_item.user_id == current_user.user_id:
         return task_item
     raise HTTPException(404, f'Task with id {id} not found')
 
@@ -59,9 +58,12 @@ async def save_task(task: Task, current_user: TokenData = Depends(get_current_us
         return response
     raise HTTPException(400, 'Something went wrong')
 
-
 @task.put('/api/tasks/{id}', response_model=Task)
-async def put_task(id: str, task: UpdateTask):
+async def put_task(id: str, task: UpdateTask, current_user: TokenData = Depends(get_current_user)):
+    existing = await get_one_task_id(id)
+    if not existing or existing.user_id != current_user.user_id:
+        raise HTTPException(404, f'Task with id {id} not found')
+
     response = await update_task(id, task)
     if response:
         return response
@@ -69,7 +71,11 @@ async def put_task(id: str, task: UpdateTask):
 
 
 @task.delete('/api/tasks/{id}')
-async def remove_task(id: str):
+async def remove_task(id: str, current_user: TokenData = Depends(get_current_user)):
+    existing = await get_one_task_id(id)
+    if not existing or existing.user_id != current_user.user_id:
+        raise HTTPException(404, f'Task with id {id} not found')
+
     response = await delete_task(id)
     if response:
         return "Successfully deleted task"

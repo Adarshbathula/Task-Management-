@@ -1,6 +1,6 @@
-import pydantic
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+import re
+from pydantic import BaseModel, Field, EmailStr, field_validator
+from typing import Optional, List
 from bson import ObjectId
 from datetime import date, datetime
 from pydantic_core import core_schema
@@ -93,3 +93,167 @@ class TokenData(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ROUTINE + SMART PRODUCTIVITY MODELS
+
+ALLOWED_TASK_CATEGORIES = {"dsa", "backend", "other", "frontend", "system-design"}
+ALLOWED_TASK_PRIORITIES = {"low", "medium", "high"}
+ALLOWED_DAILY_TASK_STATUSES = {"pending", "completed", "skipped"}
+
+
+class RoutineTaskTemplate(BaseModel):
+    title: str
+    category: str = "other"
+    time: str
+    goal: str
+    priority: str = "medium"
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str) -> str:
+        normalized = value.lower().strip()
+        if normalized not in ALLOWED_TASK_CATEGORIES:
+            return "other"
+        return normalized
+
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, value: str) -> str:
+        normalized = value.lower().strip()
+        if normalized not in ALLOWED_TASK_PRIORITIES:
+            return "medium"
+        return normalized
+
+    @field_validator("time")
+    @classmethod
+    def validate_time(cls, value: str) -> str:
+        if not re.match(r"^([01]\d|2[0-3]):[0-5]\d$", value):
+            raise ValueError("time must be in HH:MM format")
+        return value
+
+
+class RoutineTemplate(BaseModel):
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
+    user_id: str
+    tasks: List[RoutineTaskTemplate] = []
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+
+
+class DailyTask(BaseModel):
+    task_id: str = Field(default_factory=lambda: str(ObjectId()))
+    title: str
+    category: str = "other"
+    time: str
+    goal: str
+    priority: str = "medium"
+    status: str = "pending"
+    progress: int = 0
+    carried_over: bool = False
+    completed_at: Optional[datetime] = None
+    reminded_at: Optional[datetime] = None
+    email_reminded_at: Optional[datetime] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, value: str) -> str:
+        normalized = value.lower().strip()
+        if normalized not in ALLOWED_DAILY_TASK_STATUSES:
+            return "pending"
+        return normalized
+
+    @field_validator("progress")
+    @classmethod
+    def validate_progress(cls, value: int) -> int:
+        return max(0, min(100, int(value)))
+
+
+class DailyLog(BaseModel):
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
+    user_id: str
+    date: date
+    tasks: List[DailyTask] = []
+    completion_percentage: float = 0.0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+
+
+class DailyTaskStatusUpdate(BaseModel):
+    status: str
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, value: str) -> str:
+        normalized = value.lower().strip()
+        if normalized not in ALLOWED_DAILY_TASK_STATUSES:
+            raise ValueError("status must be one of pending/completed/skipped")
+        return normalized
+
+
+class DailyTaskProgressUpdate(BaseModel):
+    progress: int
+
+    @field_validator("progress")
+    @classmethod
+    def validate_progress(cls, value: int) -> int:
+        v = int(value)
+        if v < 0 or v > 100:
+            raise ValueError("progress must be between 0 and 100")
+        return v
+
+
+class GoalPlan(BaseModel):
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
+    user_id: Optional[str] = None
+    title: str
+    target_date: Optional[date] = None
+    milestones: List[str] = []
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+
+
+class FocusSession(BaseModel):
+    id: Optional[PyObjectId] = Field(default=None, alias="_id")
+    user_id: str
+    task_id: Optional[str] = None
+    target_minutes: int = 25
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    ended_at: Optional[datetime] = None
+    duration_seconds: int = 0
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+
+
+class NaturalLanguageTaskInput(BaseModel):
+    text: str
+
+
+class RoutineSuggestionResponse(BaseModel):
+    tasks: List[RoutineTaskTemplate]
+
+
+class StartFocusSessionRequest(BaseModel):
+    task_id: Optional[str] = None
+    target_minutes: int = 25
+
+
+class StopFocusSessionRequest(BaseModel):
+    ended_at: Optional[datetime] = None

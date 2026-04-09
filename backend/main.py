@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from routes.task import task
 from routes.user import auth
+from routes.routine import routine
+from routes.ai import ai
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
+from reminder_scheduler import ReminderScheduler
+from socket_server import socket_app
 
 app = FastAPI()
+scheduler = ReminderScheduler(interval_seconds=60)
 
 # CORS: allow only the Vercel frontend (required when using credentials)
 # Note: we strip any trailing slash to avoid origin mismatches.
@@ -35,3 +40,16 @@ def welcome():
 
 app.include_router(task)
 app.include_router(auth)
+app.include_router(routine)
+app.include_router(ai)
+app.mount("/socket.io", socket_app)
+
+
+@app.on_event("startup")
+async def on_startup():
+    await scheduler.start()
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await scheduler.stop()

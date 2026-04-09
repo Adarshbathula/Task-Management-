@@ -32,7 +32,6 @@ export const fetchTasks = async () => {
         return response.data;
     } catch (error) {
         if (error.response && error.response.status === 401) {
-            // Redirige al login si no está autenticado
             window.location.href = '/login'; 
         }
         console.error('Error fetching tasks:', error);
@@ -136,4 +135,102 @@ export const fetchAdminTasks = async () => {
         console.error('Error fetching admin tasks:', error);
         throw error;
     }
+};
+
+export const fetchRoutineTemplate = async () => {
+    const response = await axiosInstance.get('/api/routines/template');
+    return response.data;
+};
+
+export const saveRoutineTemplate = async (tasks) => {
+    const response = await axiosInstance.put('/api/routines/template', { tasks });
+    return response.data;
+};
+
+export const fetchDailyRoutine = async (targetDate) => {
+    const response = await axiosInstance.get('/api/routines/daily', {
+        params: targetDate ? { target_date: targetDate } : {},
+    });
+    return response.data;
+};
+
+export const updateDailyRoutineTask = async (taskId, status, targetDate) => {
+    const response = await axiosInstance.patch(`/api/routines/daily/${taskId}`, { status }, {
+        params: targetDate ? { target_date: targetDate } : {},
+    });
+    return response.data;
+};
+
+export const deleteDailyRoutineTask = async (taskId, targetDate) => {
+    const response = await axiosInstance.delete(`/api/routines/daily/${taskId}`, {
+        params: targetDate ? { target_date: targetDate } : {},
+    });
+    return response.data;
+};
+
+export const updateDailyRoutineTaskProgress = async (taskId, progress, targetDate) => {
+    const response = await axiosInstance.patch(`/api/routines/daily/${taskId}/progress`, { progress }, {
+        params: targetDate ? { target_date: targetDate } : {},
+    });
+    return response.data;
+};
+
+export const fetchRoutineAnalytics = async () => {
+    const response = await axiosInstance.get('/api/routines/analytics');
+    return response.data;
+};
+
+export const fetchFailureInsights = async () => {
+    const response = await axiosInstance.get('/api/routines/failure-insights');
+    return response.data;
+};
+
+export const fetchRoutineReminders = async () => {
+    const response = await axiosInstance.get('/api/routines/reminders');
+    return response.data;
+};
+
+export const parseTaskFromText = async (text) => {
+    const response = await axiosInstance.post('/api/ai/parse-task', { text });
+    return response.data;
+};
+
+export const parseTaskFromVoiceText = async (text) => {
+    const response = await axiosInstance.post('/api/ai/voice-task', { text });
+    return response.data;
+};
+
+export const fetchAiSuggestions = async () => {
+    const response = await axiosInstance.get('/api/ai/suggestions');
+    return response.data;
+};
+
+export const createGoalPlan = async (payload) => {
+    const response = await axiosInstance.post('/api/routines/goals', payload);
+    return response.data;
+};
+
+export const fetchGoalPlans = async () => {
+    const response = await axiosInstance.get('/api/routines/goals');
+    return response.data;
+};
+
+export const startFocusSession = async (payload = {}) => {
+    const response = await axiosInstance.post('/api/routines/focus/start', payload);
+    return response.data;
+};
+
+export const stopFocusSession = async (sessionId) => {
+    const response = await axiosInstance.post(`/api/routines/focus/${sessionId}/stop`, {});
+    return response.data;
+};
+
+export const fetchActiveFocusSession = async () => {
+    const response = await axiosInstance.get('/api/routines/focus/active');
+    return response.data;
+};
+
+export const fetchFocusStats = async (days = 7) => {
+    const response = await axiosInstance.get('/api/routines/focus/stats', { params: { days } });
+    return response.data;
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchTask, createTask, updateTask, deleteTask } from "../api/tasks";
+import { fetchTask, createTask, updateTask, deleteTask, parseTaskFromVoiceText } from "../api/tasks";
 
 
 function TaskForm() {
@@ -10,6 +10,7 @@ function TaskForm() {
     const [priority, setPriority] = useState('medium'); // high / medium / low
     const [dueDate, setDueDate] = useState(''); // YYYY-MM-DD
     const [status, setStatus] = useState('pending'); // pending / completed / overdue (overdue is derived)
+    const [isListening, setIsListening] = useState(false);
     const params = useParams();
 
     const handleSubmit = async (e) => {
@@ -50,6 +51,63 @@ function TaskForm() {
                 .catch(err => console.log(err));
         }
     }, []);
+
+    const voiceCreateTask = async () => {
+        if (isListening) return;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.lang = "en-US";
+
+        setIsListening(true);
+
+        recognition.onresult = async (event) => {
+            const result = event.results[event.resultIndex];
+            if (!result || !result.isFinal) return;
+
+            const transcript = (result[0]?.transcript || "").trim();
+            if (!transcript) return;
+
+            try {
+                const parsedRes = await parseTaskFromVoiceText(transcript);
+                const parsed = parsedRes?.task || parsedRes;
+                const payload = {
+                    title: parsed?.title || "Voice Task",
+                    description: "",
+                    priority: parsed?.priority || "medium",
+                    due_date: null,
+                    status: "pending",
+                };
+
+                if (!params.id) {
+                    await createTask(payload);
+                    navigate('/');
+                } else {
+                    setTitle(payload.title);
+                    setDescription(payload.description);
+                    setPriority(payload.priority);
+                    setStatus(payload.status);
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
+        recognition.onerror = () => {
+            setIsListening(false);
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+        };
+
+        recognition.start();
+    };
 
     return (
         <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
@@ -125,6 +183,13 @@ function TaskForm() {
                 text-white font-bold py-1 px-2 rounded"
                 >
                     {params.id ? "Update Task" : "Create Task"}
+                </button>
+                <button
+                    type="button"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1 px-2 ml-3 rounded"
+                    onClick={voiceCreateTask}
+                >
+                    {isListening ? "Listening..." : "Mic"}
                 </button>
                 {
                     params.id && (

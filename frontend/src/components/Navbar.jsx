@@ -15,6 +15,7 @@ import { AuthContext } from '../AuthContext';
 
 const navigation = [
   { name: 'Tasks', href: '/', current: false },
+  { name: 'Routine', href: '/routine', current: false },
 ];
 
 export default function Navbar() {
